@@ -1,6 +1,7 @@
 //! Interleave two ordered iterators to create a new ordered iterator.
 
 use std::cmp::Ord;
+use std::iter::Fuse;
 
 enum Pending<T> {
     None,
@@ -18,8 +19,8 @@ impl<T> Pending<T> {
 /// in order.
 pub struct InterleaveOrdered<A, B> where A: Iterator, B: Iterator<Item=A::Item> {
     pending_next: Pending<A::Item>,
-    a: A,
-    b: B,
+    a: Fuse<A>,
+    b: Fuse<B>,
 }
 
 impl<A, B> Iterator for InterleaveOrdered<A, B> 
@@ -56,12 +57,13 @@ impl<A, B> Iterator for InterleaveOrdered<A, B>
 /// Interleave two ordered iterators, yielding a new iterator whose items are also ordered.
 ///
 /// ```rust
+/// use interleaved_ordered::interleave_ordered;
 /// let a = [1, 1, 2, 3, 5, 7, 9];
 /// let b = [2, 3, 4, 5, 6, 7, 10];
 /// let iter = interleave_ordered(&a, b.iter());
     
 /// assert_eq!(
-///    interleave_ordered(&a, &b).collect::<Vec<_>>(), 
+///    interleave_ordered(&a, &b).cloned().collect::<Vec<_>>(), 
 ///    vec![1, 1, 2, 2, 3, 3, 4, 5, 5, 6, 7, 7, 9, 10]
 /// )
 /// ```
@@ -70,7 +72,7 @@ pub fn interleave_ordered<A, B>(a: A, b: B) -> InterleaveOrdered<A::IntoIter, B:
 {
     InterleaveOrdered {
         pending_next: Pending::None,
-        a: a.into_iter(),
-        b: b.into_iter(),
+        a: a.into_iter().fuse(),
+        b: b.into_iter().fuse(),
     }
 }
